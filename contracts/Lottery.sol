@@ -12,6 +12,7 @@ contract Lottery{
     function get entranceFee() public view returns(uint256){}
     function enterGame() public payable {
         players.push(msg.sender);
+        return player;
     }
 
     function startGame()public{}
