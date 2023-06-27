@@ -52,7 +52,9 @@ contract Lottery is Ownable {
         lottery_state = LOTTERY_STATE.OPEN;
     }
 
-    function endGame() public {}
+    function endGame() public {
+        require();
+    }
 
     function withdrawGame() public payable {}
 }
