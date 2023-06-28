@@ -4,27 +4,39 @@ pragma solidity ^0.8.0;
 
 import "@chainlink/contracts/src/v0.6/interfaces/AggregatorV3Interface.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
+import "@chainlink/contracts/src/v0.6/VRFConsumerBase.sol";
 
 //MAIN FUNCTIONS FOR OUR LOTTERY GAME: ENTER(), STARTGAME(), ENDGAME(), WITHDRAWAMOUNT()
 
-contract Lottery is Ownable {
+contract Lottery is Ownable, VRFConsumerBase {
     address payable[] public players;
     uint256 usdEntryFee;
     Aggregator internal ethUSDPriceFeed;
     LOTTERY_STATE public lottery_state;
+    uint256 public fee;
+    bytes32 public keyHash;
+    event RequestedRandomness(bytes32 requestID);
+    // uint256 public randomness;
+    // address payable public recentWinner;
 
     enum LOTTERY_STATE {
         OPEN,
         CLOSED,
-        CALCUATING_WINNERS
+        CALCUATING_WINNER
     }
 
-    constructor() public {
+    constructor(
+        address _priceFeedAddress,
+        address _vrfCordinator,
+        address _link,
+        uint256 _fee,
+        bytes32 _keyHash
+         ) public VRFConsumerBase(_vrfCordinator, _link) {
         usdEntryFee = 50 * (10 ** 18); ///@user: fee in usd is set to 50 dollars
-        ethUSDPriceFeed = AggregatorV3Interface(
-            0x694AA1769357215DE4FAC081bf1f309aDC325306
-        );
+        ethUSDPriceFeed = AggregatorV3Interface(_priceFeedAddress);
         lottery_state = LOTTERY_STATE.CLOSED;
+        fee = _fee;
+        keyHash = _keyHash;
     }
 
     function getEntranceFee() public view returns (uint256) {
@@ -53,7 +65,27 @@ contract Lottery is Ownable {
     }
 
     function endGame() public {
-        require();
+        lottery_state = LOTTERY_STATE.CALCUATING_WINNERS;
+        bytes32 requestId = requestRandomness(keyHash, fee);
+    }
+//WE MADE THS FUNCTION INTERNAL BECAUSE WE ONLY WANT OUR CHAINLINK TO CALL IT
+// It's internal because actually the chainlink node is calling the 
+// vrfCoordinator and then the vrfCoordinator is calling our fulfillRandomness. So 
+// we made it internal so that only the vrfCoordinator can be the one to call and 
+// return this function.
+    function fullfillRandomness(bytes32 _requestId, uint256 _randomness) internal override{
+        require(lottery_state == LOTTERY_STATE.CALCUATING_WINNER, "YOU AREN'T THERE YET");
+        require(_randomness > 0, "RANDOM NOT FOUND");
+        uint256 indexOfWinner = _randomness % players.length;
+             recentWinner = players[indexOfWinner];
+        recentWinner.transfer(address(this).address);
+
+        //RESET THE ARRAY
+        players = new address payable[](0);
+        lottery_state = LOTTERY_STATE.CALCUATING_CLOSED;
+            randomness = _randomness;
+
+            emit RequestedRandomness(requestID);
     }
 
     function withdrawGame() public payable {}
