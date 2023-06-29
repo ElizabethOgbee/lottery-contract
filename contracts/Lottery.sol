@@ -41,7 +41,7 @@ contract Lottery is Ownable, VRFConsumerBase {
 
     function getEntranceFee() public view returns (uint256) {
         //get the price feed and round the price
-        (, uint256 price, , , ) = ethUSDPriceFeed.latestRounfData();
+        (, uint256 price, , , ) = ethUSDPriceFeed.latestRounOfData();
         // Since we know we're going to be using an ethereum / usd pricefeed that has eight decimals.Let's also just convert it to having 18 decimals as well.
         uint256 adjustedPrice = uint256(price) * 10 ** 10;
         // Now that we've adjusted price we'll do:
@@ -88,7 +88,6 @@ contract Lottery is Ownable, VRFConsumerBase {
             emit RequestedRandomness(requestID);
     }
 
-    function withdrawGame() public payable {}
 }
 
 //  Now we're going to want to do a little bit of quick math.
